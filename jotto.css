@@ -8,13 +8,23 @@
 	position:absolute;
 	top:10px;		
 }
-#restart_game {
-	left:410px;
+#anagram {
+	left:129px;
+	top:7px;
+	position:absolute;
+}
+#reset_alphabet {
+	left:160px;
 	position:absolute;
 	top:32px;		
 }
-#reset_alphabet {
-	left:210px;
+#restart_game {
+	left:267px;
+	position:absolute;
+	top:32px;		
+}
+#resign{
+	left:367px;
 	position:absolute;
 	top:32px;		
 }

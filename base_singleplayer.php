@@ -1,12 +1,14 @@
 <head>
 	<link rel="stylesheet" type="text/css" href="jotto.css">
+	<script src="jotto.js"></script>
 </head>
 <body>
 <div id="form_wrapper">
 	<form id="guess" action="single.php" method="post">
-		Guess: <input type="text" name="guess"><br>
+		Guess: <input id="guess_textbox" autofocus="autofocus" type="text" name="guess"><br>
 		<input type="submit">
 	</form>
+	<button id="anagram" onclick="anagramify()" >&#8634;</button>
 	<form id="restart_game" action="single.php" method="post">
 		<input type="hidden" name="restart" value="1"><br>
 		<input type="submit" value="Restart Game">
@@ -14,6 +16,10 @@
 	<form id="reset_alphabet" action="single.php" method="post">
 		<input type="hidden" name="resetalphabet" value="1"><br>
 		<input type="submit" value="Reset Alphabet">
+	</form>
+	<form id="resign" action="single.php" method="post">
+		<input type="hidden" name="resign" value="1"><br>
+		<input type="submit" value="Give Up">
 	</form>
 </div>
 <br/><br/><br/>
@@ -172,14 +178,17 @@ class Game {
 			$response = '';
 		} elseif (isset($request['resetalphabet'])) {
 			$player->initLetterList();
+			$this->reZeroNulls($player);
 			$response = 'Resetting alphabet state.';
+		} elseif (isset($request['resign'])) {
+			session_destroy();
+			$response = 'Giving up. Word was ' . $player->getWord();
 		} else {
 			$response = 'Enter a 5-letter word to begin.';
 			//throw new Exception('Valid input missing: "guess" or "letter" required.');
 		}
 		return $response;
 	}
-	
 	
     //Get all of the words guessed by the player; color-code them by letter status (yes, no, unknown).
     function displayHistory($player, $color_code = FALSE) {
@@ -211,12 +220,12 @@ class Game {
 		$guess = $request['guess'];
 		
 		if (strlen($guess) != 5) {
-			throw new Exception("Your guess must be exactly 5 letters long.");
+			return "Your guess must be exactly 5 letters long.";
 		}
 		$wordlist = array_flip($player->getWordList());
 		
 		if ( ! isset($wordlist[$guess])) {
-			throw new Exception('Retry with a real word.');
+			return 'Retry with a real word.';
 		}
 		$guessed = array_flip(str_split(trim($guess)));
 		$master_word = trim($player->getWord());
@@ -224,7 +233,7 @@ class Game {
 		$letters = count(array_intersect_key($guessed, $word));
 		$history = $player->addHistory($guess, $letters);
 		if ($letters == 5 && $master_word == $guess) {
-			$this->userWins($player, $this->word);
+			return $this->userWins($player, $word);
 		}
 		//If their word had 0 right, go ahead and toggle their alphabet off for them.
 		if ($letters == 0) {
@@ -290,6 +299,21 @@ class Game {
 		$player->setLetterList( $letter_list );
 		return $letter_list;
     }
+	
+	function reZeroNulls($player) {
+		$h = $player->getHistory();
+		if (empty($h)) {
+			return;
+		}
+		foreach ($h as $word => $correct) {
+			if ($correct > 0) {
+				continue;
+			}
+			foreach (str_split($word) as $letter => $ignore) {
+				$this->changeAlphabet($player, $ignore, 0);
+			}
+		}
+	}	
 }
 
 class Utility {
@@ -356,7 +380,6 @@ class Utility {
 		echo '<div align="left"><pre>' . htmlentities(ob_get_clean(), ENT_QUOTES, 'UTF-8') . '</pre></div>';
 	}
 }
-
 ?>
 </div>
 </body>
