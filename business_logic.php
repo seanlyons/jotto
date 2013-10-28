@@ -61,6 +61,14 @@ class Player {
         }
 		return $wordlist;
 	}
+    
+	function getGuessableList() {
+        $wordlist = file(__dir__ . '/guessable.txt', FILE_IGNORE_NEW_LINES);
+        if ($wordlist === FALSE) {
+            throw new Exception('guessable.txt missing');
+        }
+		return $wordlist;
+	}
 
 	//Take the alphabet and break it into an array of [letter] => [knowledge state]
     function initLetterList() {
@@ -191,7 +199,7 @@ class Game {
 		if (strlen($guess) != 5) {
 			return "Your guess must be exactly 5 letters long.";
 		}
-		$wordlist = array_flip($player->getWordList());
+		$wordlist = array_flip($player->getGuessableList());
 		
 		if ( ! isset($wordlist[$guess])) {
 			return 'Retry with a real word.';
