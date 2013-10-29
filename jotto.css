@@ -1,38 +1,48 @@
-#form_wrapper {
-	position:absolute;
-	height:100px;
-	background:orange;
+body {
+	margin:0 0 0 7px;
+	background:#EEE;
 }
-#guess {
-	left:10px;
+#title_header {
+	font-size:36px;
+	text-align:center;
+	background:#EEE;
+	width:100%;
+	position:relative;
+}
+#wrapper {
 	position:absolute;
-	top:10px;		
+	height:50px;
+}
+.col {
+	float:left;
+	height:inherit;
+	margin:0 7px;
+	position:relative;
+}
+#col2,
+#col3,
+#col4{
+	margin-top:6px;
+}
+#guess_submit {
+	position:absolute;
+    left:0px;
+    bottom:0px;
 }
 #anagram {
-	left:129px;
-	top:7px;
 	position:absolute;
+    right:0px;
+    bottom:0px;
 }
-#reset_alphabet {
-	left:160px;
-	position:absolute;
-	top:32px;		
-}
-#restart_game {
-	left:267px;
-	position:absolute;
-	top:32px;		
-}
-#resign{
-	left:367px;
-	position:absolute;
-	top:32px;		
+#notes_textbox {
+    position:absolute;
+    top:96px;
+    left:230px;
 }
 #phps {
 	position:absolute;
 	top:100px;
 }
-	
 .letter_list {
 	margin-left:10px;
 	font-family:"Courier New", Courier, monospace; 
@@ -47,17 +57,23 @@
 	color:#BBB !important;
 	text-decoration:line-through; 
 }
+.was_guessed {
+    text-decoration:underline; 
+}
 .history_list {
 	color:blue;
 	font-size:18;
 }
 .history_correct {
-	color:orange;
+	color:red;
+	font-weight:bold;
 	position:absolute;
 	left:200px; 
 }
 .history_wrapper {
 	font-family:"Courier New", Courier, monospace;
+	background:#DDD;
+	width:43%;
 } 
 a:link {
 	text-decoration:none;

@@ -18,6 +18,7 @@ class Player {
 	protected $word = '';
 	protected $letter_list = array();
 	protected $time_started = 0;
+    protected $letters_guessed = '';
     
     function __construct ($player_name = NULL, $sid = NULL) {
         if ( ! isset($player_name)) {
@@ -83,7 +84,24 @@ class Player {
     function getHistory() {	return json_decode($this->history, TRUE);	}
     function getLetterList() {	return $this->letter_list;	}
     function getTimeStarted() {	return $this->time_started;	}
+    function getLettersGuessed() {	return $this->letters_guessed;	}
+
     function setLetterList( $new ) {	$this->letter_list = $new;	}
+    
+    //Save the letters in all of the words they've guessed in a string; to be compared later.
+    function setLettersGuessed( $word ) {
+        $letters_guessed = $this->letters_guessed;
+        $letters = str_split($word);
+        if (empty($letters)) {
+            return;
+        }        
+        foreach ($letters as $num => $word_letter) {
+            if (strpos($letters_guessed, $word_letter) === FALSE) {
+                $this->letters_guessed .= $word_letter;
+            }
+        }
+        return;
+    }
 	
     function incrementTurns() {
 		$this->turns += 1;
@@ -159,7 +177,8 @@ class Game {
 			$response = 'Resetting alphabet state.';
 		} elseif (isset($request['resign'])) {
 			session_destroy();
-			$response = 'Giving up. Word was ' . $player->getWord();
+            $word = $player->getWord();
+			$response = "Giving up. Word was <a href='https://www.google.com/search?q=define+$word'>$word</a>";
 		} else {
 			$response = 'Enter a 5-letter word to begin.';
 			//throw new Exception('Valid input missing: "guess" or "letter" required.');
@@ -208,10 +227,15 @@ class Game {
 		$master_word = trim($player->getWord());
 		$word = array_flip(str_split($master_word));
 		$letters = count(array_intersect_key($guessed, $word));
-		$history = $player->addHistory($guess, $letters);
+        try {
+            $history = $player->addHistory($guess, $letters);
+        } catch (Exception $e) {
+            return $e->getMessage;
+        }
 		if ($letters == 5 && $master_word == $guess) {
 			return $this->userWins($player, $word);
 		}
+        $player->setLettersGuessed( $guess );
 		//If their word had 0 right, go ahead and toggle their alphabet off for them.
 		if ($letters == 0) {
 			foreach ($guessed as $letter => $i) {
@@ -241,12 +265,15 @@ class Game {
     //Display their alphabet back to them, color-coded by letter status
     function displayAlphabet($player) {
 		$output = '';
+        $letters_guessed = $player->getLettersGuessed($player);
 		foreach($player->getLetterList() as $letter => $status) {
 			$letter_status = $this->getLetterStatus($status);
-			$output .= "<a href='single.php?letter=$letter'><span class='letter_list $letter_status'>$letter</span></a>";
+            $was_guessed = (strpos($letters_guessed, $letter) === FALSE) ? '' : 'was_guessed';
+			$output .= "<a href='single.php?letter=$letter'><span class='letter_list $letter_status $was_guessed'>$letter</span></a>";
 		}
 		return $output;
     }
+    
 	
 	//Simple translation function.
 	function getLetterStatus($status) {
