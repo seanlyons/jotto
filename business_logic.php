@@ -15,25 +15,32 @@ class Player {
     protected $name = 'NAME';
     protected $turns = 0;
     protected $history = '';
-	protected $word = '';
-	protected $letter_list = array();
-	protected $time_started = 0;
+    protected $word = '';
+    protected $letter_list = array();
+    protected $time_started = 0;
     protected $letters_guessed = '';
+    protected $last_word = '';
     
     function __construct ($player_name = NULL, $sid = NULL) {
         if ( ! isset($player_name)) {
             $this->name = (isset($player_name)) ? $player_name : $this->generateString();
         }
         $this->initLetterList();
-		$this->chooseWord();
-		$this->time_started = time();
+        $this->chooseWord();
+        $this->time_started = time();
 
-		$ip = Utility::get_user_ip();
-		error_log("New word for user @$ip: ". $this->word);
-		
-		$_SESSION['player_object'] = $this;
+        $ip = Utility::get_user_ip();
+        error_log("New word for user @$ip: ". $this->word);
+            
+        $_SESSION['player_object'] = $this;
     }
 
+	//Take the alphabet and break it into an array of [letter] => [knowledge state]
+    function initLetterList() {
+        $aa = str_split(static::$alphabet);
+        $this->letter_list = array_fill_keys($aa, -1);
+    }
+    
 	//Get a random word out of the list of 5-letter words
     function chooseWord() {
 		$split_word = array();
@@ -70,23 +77,19 @@ class Player {
         }
 		return $wordlist;
 	}
-
-	//Take the alphabet and break it into an array of [letter] => [knowledge state]
-    function initLetterList() {
-        $aa = str_split(static::$alphabet);
-        $this->letter_list = array_fill_keys($aa, -1);
-    }
     
 	//Standard battery of setters and getters
     function getWord() {	return $this->word;		}
     function getTurns() { return $this->turns; }	
     function getName() {	return $this->name;	}
     function getHistory() {	return json_decode($this->history, TRUE);	}
+    function getLastWord() {    return $this->last_word;    }
     function getLetterList() {	return $this->letter_list;	}
     function getTimeStarted() {	return $this->time_started;	}
     function getLettersGuessed() {	return $this->letters_guessed;	}
 
     function setLetterList( $new ) {	$this->letter_list = $new;	}
+    function setLastWord($last_word) {    $this->last_word = $last_word;    }
     
     //Save the letters in all of the words they've guessed in a string; to be compared later.
     function setLettersGuessed( $word ) {
@@ -115,9 +118,10 @@ class Player {
 			$h = json_decode($this->history, TRUE);
 		}
 		if (array_key_exists($word, $h)) {
-			throw new Exception('That word has already been guessed.');
+			$this->err_msg = 'That word has already been guessed.';
 		}
 		$this->incrementTurns();
+        $this->last_word = $word;
 		$h[$word] = $matching;
 		$this->history = json_encode($h);
         return $this->history;
@@ -137,17 +141,21 @@ class Player {
 
 class Game {
     protected static $alphabet = 'abcdefghijklmnopqrstuvwxyz';
+    protected $last_turn = '';
     
 	//All exceptions get caught and handled here.
 	function wrapper( $request = NULL) {
 		try {
-			if (isset($request['restart'])) {
-				session_destroy();
-				session_start();
-			}
+			// if (isset($request['restart'])) {
+				// session_destroy();
+				// session_start();
+			// }
 			$response = $this->init( $request );
         } catch (Exception $e) {
             return ('EXCEPTION: ' . $e->getMessage());
+        }
+        if (!empty($this->last_turn)) {
+            echo $this->last_turn;
         }
 		return $response;
 	}
@@ -156,7 +164,6 @@ class Game {
     function init( $request ) {
 		$name = (isset($request['name'])) ? $request['name'] : '';
 		$p1 = isset($_SESSION['player_object']) ? $_SESSION['player_object'] : new Player( $name );
-		//print_r($p1);
 		$response = $this->delegateInput( $p1, $request );
 		echo $this->displayAlphabet($p1);
 		echo $this->displayHistory($p1, TRUE);
@@ -168,30 +175,43 @@ class Game {
 	function delegateInput( $player, $request ) {
 		if (isset($request['guess'])) {
 			$response = $this->makeGuess( $player, $request );
+            $this->lastTurn($player);
 		} elseif (isset($request['letter'])) {
 			$this->changeAlphabet($player, $request['letter'][0] );
 			$response = '';
+            $this->lastTurn($player);
 		} elseif (isset($request['resetalphabet'])) {
 			$player->initLetterList();
 			$this->reZeroNulls($player);
 			$response = 'Resetting alphabet state.';
+            $this->lastTurn($player);
 		} elseif (isset($request['resign'])) {
-			session_destroy();
-            $word = $player->getWord();
-			$response = "Giving up. Word was <a href='https://www.google.com/search?q=define+$word'>$word</a>";
+            $response = $this->userLoses($player);
 		} else {
 			$response = 'Enter a 5-letter word to begin.';
 			//throw new Exception('Valid input missing: "guess" or "letter" required.');
 		}
 		return $response;
 	}
+    
+    function userLoses($player) {
+        session_destroy();
+        session_start();
+        $turns = $player->getTurns();
+        $word = $player->getWord();
+        error_log("Resigned: User @".Utility::get_user_ip().": ". $word." after $turns turns.");
+        return "Giving up. Word was <a href='https://www.google.com/search?q=define+$word'>$word</a>. Enter another word to start again.";
+    }
 	
     //Get all of the words guessed by the player; color-code them by letter status (yes, no, unknown).
     function displayHistory($player, $color_code = FALSE) {
-		$letter_list = $player->getLetterList();
-		$output = '<div class="history_wrapper">';
+        $output = '<br/>';
+        $letter_list = $player->getLetterList();
 		$history = $player->getHistory();
-		if (sizeof($history) > 0) {
+		
+        if (sizeof($history) > 0) {
+            $output = '<div class="history_wrapper">';
+			$i = 0;
 			foreach($history as $word => $correct) {
 				if ($color_code == TRUE) {
 					$ccword = '';
@@ -202,11 +222,15 @@ class Game {
 					}
 					$word = $ccword;
 				}
-				$output .= '<span class="history_list">' . $word . '</span>';
+				$output .= '<span id="history_list_'.$i.'" class="history_list">' . $word . '</span>';
 				$output .= '<span class="history_correct">' . $correct . '</span><br/>';
+				$i++;
 			}
+            $output .= '</div>';
 		}
-		$output .= '</div>';
+		$notes_textbox = (21 * sizeof($history)) - 3.5;
+		print_r("<style> #notes_textbox { height:$notes_textbox; } </style>");
+		
 		return $output;
 	}
    
@@ -247,10 +271,18 @@ class Game {
 				$this->changeAlphabet($player, $letter, 1);
 			}
 		}
-		$turns = $player->getTurns();
-		return 'You guessed: '.$guess."    ($turns turns)";
+        return;
     }
 
+    function lastTurn($player) {
+		$turns = $player->getTurns();
+        if ($turns == 0) {
+            return '';
+        }
+		$last_word = $player->getLastWord();
+		$this->last_turn = "Your last guess was: $last_word    ($turns turns)<br/>";
+    }
+    
 	//The user has won; display a message and clean up.
 	function userWins($player, $word) {
 		$turns = $player->getTurns();
@@ -259,18 +291,20 @@ class Game {
 		$minutes = (int) ($duration / 60);
 		$seconds = (int) ($duration % 60);
 		return "You won! ($turns turns; ".$minutes."m".$seconds."s)";
-		error_log("Won: User @".Utility::get_user_ip().": ". $word." in $turns turns.");    
+		error_log("Won: User @".Utility::get_user_ip().": ". $word." in $turns turns.");
 	}
 	
     //Display their alphabet back to them, color-coded by letter status
     function displayAlphabet($player) {
-		$output = '';
+		$output = '<span id="alphabet">';
         $letters_guessed = $player->getLettersGuessed($player);
 		foreach($player->getLetterList() as $letter => $status) {
 			$letter_status = $this->getLetterStatus($status);
             $was_guessed = (strpos($letters_guessed, $letter) === FALSE) ? '' : 'was_guessed';
-			$output .= "<a href='single.php?letter=$letter'><span class='letter_list $letter_status $was_guessed'>$letter</span></a>";
+            $classes = trim("letter_list $letter_status $was_guessed");
+			$output .= "<a href='single.php?letter=$letter'><span class='".$classes."'>$letter</span></a>";
 		}
+        $output .= '</span>';
 		return $output;
     }
     
@@ -317,7 +351,11 @@ class Game {
 				$this->changeAlphabet($player, $ignore, 0);
 			}
 		}
-	}	
+	}
+    
+    function debug($line) {
+        //echo 'line: #'.$line."\n";
+    }
 }
 
 class Utility {
@@ -345,43 +383,23 @@ class Utility {
 				$ips[]=$_SERVER["HTTP_CLIENT_IP"];
 			}
 		}
-		foreach ($ips as $ip) { //for all the ips, work on it one by one based on patterns given down here
+		foreach ($ips as $ip) { //for all the ips, work on it one-by-one based on patterns given down here
 			if (!preg_match("/^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/",$ip)) {
-				//if it doesn't  match the pattern then skip
+				//if it doesn't match the pattern, skip
 				continue;
 			}
 			if( ! ip2long($ip) ) {
-				// in php5.3, this is same as line above.
 				continue;
 			}
 			
 			$result = $ip;
 		}
 		if ($result===false) {
-			$result = $fallback; //if fallback is not found it will be false
+			$result = $fallback; //if fallback is not found, it will be false
 		}
 		if( $result === false ) {
 			$result = '0.0.0.0';
 		}
 		return $USER_IP = $result; //if all resources are exhausted and not found, return false.
 	}
-	
-	//Helpful for debugging.
-	function print_pre($args) {
-		$i = 0;
-		ob_start();
-		foreach ($args as $argument) {
-			if ($i > 0) {
-				echo "\n-----------------------------------------\n\n";
-			}
-			if (is_array($argument) || is_object($argument)) {
-				print_r($argument);
-			} else {
-				var_dump($argument);
-			}
-			$i++;
-		}
-		echo '<div align="left"><pre>' . htmlentities(ob_get_clean(), ENT_QUOTES, 'UTF-8') . '</pre></div>';
-	}
 }
-?>

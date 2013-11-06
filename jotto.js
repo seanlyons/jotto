@@ -11,3 +11,10 @@ function shuffle(o){ //v1.0
 	return o;
 };
 
+function rules_modal() {
+    console.log("hello");
+	modal = document.getElementById("rules_modal");
+	modal.style.visibility = (modal.style.visibility == "visible") ? "hidden" : "visible";
+	modal = document.getElementById("rules_explanation");
+	modal.style.visibility = (modal.style.visibility == "visible") ? "hidden" : "visible";
+}
