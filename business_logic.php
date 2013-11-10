@@ -15,11 +15,12 @@ class Player {
     protected $name = 'NAME';
     protected $turns = 0;
     protected $history = '';
-    protected $word = '';
+    protected $opponents_word = '';
     protected $letter_list = array();
     protected $time_started = 0;
     protected $letters_guessed = '';
     protected $last_word = '';
+    protected $hidden_word = '';
     
     function __construct ($player_name = NULL, $sid = NULL) {
         if ( ! isset($player_name)) {
@@ -30,7 +31,7 @@ class Player {
         $this->time_started = time();
 
         $ip = Utility::get_user_ip();
-        error_log("New word for user @$ip: ". $this->word);
+        error_log("New word for user @$ip: ". $this->opponents_word);
             
         $_SESSION['player_object'] = $this;
     }
@@ -56,7 +57,7 @@ class Player {
 			$split_word = str_split($word);
 		}
 		//Save the word we ended up with.
-		$this->word = $word;
+		$this->opponents_word = $word;
         return $word;
     }
 	
@@ -79,7 +80,7 @@ class Player {
 	}
     
 	//Standard battery of setters and getters
-    function getWord() {	return $this->word;		}
+    function getOpponentsWord() {	return $this->opponents_word;		}
     function getTurns() { return $this->turns; }	
     function getName() {	return $this->name;	}
     function getHistory() {	return json_decode($this->history, TRUE);	}
@@ -167,7 +168,7 @@ class Game {
 		$response = $this->delegateInput( $p1, $request );
 		echo $this->displayAlphabet($p1);
 		echo $this->displayHistory($p1, TRUE);
-		
+print_r($p1);
 		return $response;
 	}
 	
@@ -198,7 +199,7 @@ class Game {
         session_destroy();
         session_start();
         $turns = $player->getTurns();
-        $word = $player->getWord();
+        $word = $player->getOpponentsWord();
         error_log("Resigned: User @".Utility::get_user_ip().": ". $word." after $turns turns.");
         return "Giving up. Word was <a href='https://www.google.com/search?q=define+$word'>$word</a>. Enter another word to start again.";
     }
@@ -248,7 +249,7 @@ class Game {
 			return 'Retry with a real word.';
 		}
 		$guessed = array_flip(str_split(trim($guess)));
-		$master_word = trim($player->getWord());
+		$master_word = trim($player->getOpponentsWord());
 		$word = array_flip(str_split($master_word));
 		$letters = count(array_intersect_key($guessed, $word));
         try {
