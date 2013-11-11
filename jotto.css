@@ -112,7 +112,7 @@ input[type=submit] {
 }
 #alphabet {
     background:#EDE;
-    padding:0 5px;
+    padding:0 10px 0 5px;
     border-radius:5px;
     -webkit-border-radius:5px;
     box-shadow: 2px 2px 1px #888;
@@ -138,7 +138,9 @@ a:hover {
 a:active {
 	text-decoration:underline;
 }
+#last_turn {
 
+}
 #rules_modal {
     visibility: hidden;
     position: absolute;
@@ -155,7 +157,7 @@ a:active {
     height:100%;
 }
 #rules_explanation {
-    height:280px;
+    height:290px;
     position:absolute;
     background:white;
     left:25%;
@@ -179,7 +181,7 @@ a:active {
     color:white;
 }
 #overflow_container {
-    height:258px;
+    height:268px;
     overflow-y:scroll;
 }
 #rules_text {

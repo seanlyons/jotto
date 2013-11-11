@@ -5,6 +5,10 @@
 	session_start();
 	$g = new Game();
 	$p = $g->getPlayer( $request );
+	$outcome = $g->wrapper($request);
+	$history = $g->displayHistory($p, TRUE);
+// print_r($history[0]);
+	$alphabet = $g->displayAlphabet($p);
 ?>
 
 <head>
@@ -42,7 +46,6 @@
     <div id="phps">
 		<span id="alphabet">
 			<?PHP
-				$alphabet = $g->displayAlphabet($p);
 				foreach ($alphabet as $letter => $status) {
 			?>
 					<a href='single.php?letter=<?PHP echo $letter; ?>'><span class='<?PHP echo $status; ?>'><?PHP echo $letter; ?></span></a>
@@ -50,11 +53,48 @@
 				}
 			?>
 		</span>
-        <?PHP
-            print_r($g->wrapper($request));
-        ?>
-    </div>
+		<?PHP
+			if (count($history) > 0) {
+		?>
+				<div class="history_wrapper">		
+					<?PHP
+						foreach ($history as $i => $hval) {
+					?>
 
+							<span id="history_list_'<?PHP echo $i; ?>" class="history_list">
+								<?PHP
+									foreach (range(0, 4) as $j) {
+								?>
+										<span class="<?PHP echo $hval['status'][$j];?>"><?PHP echo $hval['letter'][$j];?></span>
+								<?PHP
+									}
+								?>
+							</span>
+							<span class="history_correct">
+								<?PHP echo $hval['correct'];?>
+							</span>
+							<br/>
+					<?PHP
+						}
+					?>
+				</div>
+		<?PHP
+			}
+		?>
+		<?PHP
+			if ( ! empty($outcome)) {
+				echo $outcome;
+				echo '<br/>';
+			}
+		?>
+		<span id="last_turn">
+			<?PHP
+				echo $g->lastTurn($p);
+			?>
+		</span>
+		<br/>
+		<br/>
+    </div>
     <div id="rules_modal">
         <div class="transparency_cover"></div>
         <div id="rules_explanation">

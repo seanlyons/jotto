@@ -120,6 +120,8 @@ class Player {
 		}
 		if (array_key_exists($word, $h)) {
 			$this->err_msg = 'That word has already been guessed.';
+		} else {
+			$this->err_msg = '';
 		}
 		$this->incrementTurns();
         $this->last_word = $word;
@@ -155,9 +157,6 @@ class Game {
         } catch (Exception $e) {
             return ('EXCEPTION: ' . $e->getMessage());
         }
-        if (!empty($this->last_turn)) {
-            echo $this->last_turn;
-        }
 		return $response;
 	}
 	
@@ -166,8 +165,7 @@ class Game {
 		$p1 = $this->getPlayer( $request );
 		$response = $this->delegateInput( $p1, $request );
 		//echo $this->displayAlphabet($p1);
-		echo $this->displayHistory($p1, TRUE);
-print_r($p1);
+		// echo $this->displayHistory($p1, TRUE);
 		return $response;
 	}
 	
@@ -181,23 +179,29 @@ print_r($p1);
 	//Perform business logic as mandated by $_REQUEST vars.
 	function delegateInput( $player, $request ) {
 		if (isset($request['guess'])) {
+error_log('>> guess');
 			$response = $this->makeGuess( $player, $request );
             $this->lastTurn($player);
 		} elseif (isset($request['letter'])) {
+error_log('>> letter');
 			$this->changeAlphabet($player, $request['letter'][0] );
 			$response = '';
             $this->lastTurn($player);
 		} elseif (isset($request['resetalphabet'])) {
+error_log('>> resetalphabet');
 			$player->initLetterList();
 			$this->reZeroNulls($player);
 			$response = 'Resetting alphabet state.';
             $this->lastTurn($player);
 		} elseif (isset($request['resign'])) {
+error_log('>> resign');
             $response = $this->userLoses($player);
 		} else {
+error_log('>> default');
 			$response = 'Enter a 5-letter word to begin.';
 			//throw new Exception('Valid input missing: "guess" or "letter" required.');
 		}
+error_log('...' . $response);
 		return $response;
 	}
     
@@ -212,33 +216,29 @@ print_r($p1);
 	
     //Get all of the words guessed by the player; color-code them by letter status (yes, no, unknown).
     function displayHistory($player, $color_code = FALSE) {
-        $output = '<br/>';
         $letter_list = $player->getLetterList();
 		$history = $player->getHistory();
+		$oa = array();
 		
         if (sizeof($history) > 0) {
-            $output = '<div class="history_wrapper">';
 			$i = 0;
 			foreach($history as $word => $correct) {
+				$oa[$i]['word'] = $word;
+				$oa[$i]['correct'] = $correct;
 				if ($color_code == TRUE) {
-					$ccword = '';
 					$lword = str_split($word);
 					foreach ($lword as $lk => $lv) {
-						$status = $letter_list[$lv];
-						$ccword .= '<span class="' . $this->getLetterStatus( $status ) . '">' . $lv . '</span>';
+						$oa[$i]['letter'][$lk] = $lv;
+						$oa[$i]['status'][$lk] = $this->getLetterStatus( $letter_list[$lv] );
 					}
-					$word = $ccword;
 				}
-				$output .= '<span id="history_list_'.$i.'" class="history_list">' . $word . '</span>';
-				$output .= '<span class="history_correct">' . $correct . '</span><br/>';
 				$i++;
 			}
-            $output .= '</div>';
 		}
 		$notes_textbox = (21 * sizeof($history)) - 3.5;
-		print_r("<style> #notes_textbox { height:$notes_textbox; } </style>");
-		
-		return $output;
+		// print_r("<style> #notes_textbox { height:$notes_textbox; } </style>");
+// echo(json_encode($oa));
+		return $oa;
 	}
    
     //User inputs valid word that they're guessing; return number of correct characters.
@@ -284,10 +284,10 @@ print_r($p1);
     function lastTurn($player) {
 		$turns = $player->getTurns();
         if ($turns == 0) {
-            return '';
+            return $this->last_turn = 'Enter a 5-letter word to begin';
         }
 		$last_word = $player->getLastWord();
-		$this->last_turn = "Your last guess was: $last_word    ($turns turns)<br/>";
+		return $this->last_turn = "Your last guess was: $last_word &nbsp;($turns turns)";
     }
     
 	//The user has won; display a message and clean up.
