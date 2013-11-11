@@ -37,7 +37,8 @@ body {
 #col4{
 	margin-top:14px;
 }
-#guess_submit {
+#guess_submit,
+#hidden_submit {
 	position:absolute;
     left:47px;
     bottom:0px;
@@ -84,7 +85,6 @@ input[type=submit] {
     font-family:"Courier New", Courier, monospace;
 }
 .letter_list {
-	margin-left:10px;
 	font-family:"Courier New", Courier, monospace;
 }
 .unknown {
@@ -112,7 +112,7 @@ input[type=submit] {
 }
 #alphabet {
     background:#EDE;
-    padding-right:4px;
+    padding:0 5px;
     border-radius:5px;
     -webkit-border-radius:5px;
     box-shadow: 2px 2px 1px #888;

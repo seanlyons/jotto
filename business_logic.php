@@ -163,13 +163,19 @@ class Game {
 	
 	//Create or access an existing player, then perform all relevant business logic, and display the alphabet and history as needed.
     function init( $request ) {
-		$name = (isset($request['name'])) ? $request['name'] : '';
-		$p1 = isset($_SESSION['player_object']) ? $_SESSION['player_object'] : new Player( $name );
+		$p1 = $this->getPlayer( $request );
 		$response = $this->delegateInput( $p1, $request );
-		echo $this->displayAlphabet($p1);
+		//echo $this->displayAlphabet($p1);
 		echo $this->displayHistory($p1, TRUE);
 print_r($p1);
 		return $response;
+	}
+	
+	function getPlayer( $request ) {
+		$name = (isset($request['name'])) ? $request['name'] : '';
+		$p1 = isset($_SESSION['player_object']) ? $_SESSION['player_object'] : new Player( $name );
+
+		return $p1;
 	}
 	
 	//Perform business logic as mandated by $_REQUEST vars.
@@ -297,16 +303,14 @@ print_r($p1);
 	
     //Display their alphabet back to them, color-coded by letter status
     function displayAlphabet($player) {
-		$output = '<span id="alphabet">';
         $letters_guessed = $player->getLettersGuessed($player);
-		foreach($player->getLetterList() as $letter => $status) {
+		$alphabet = $player->getLetterList();
+		foreach($alphabet as $letter => &$status) {
 			$letter_status = $this->getLetterStatus($status);
             $was_guessed = (strpos($letters_guessed, $letter) === FALSE) ? '' : 'was_guessed';
-            $classes = trim("letter_list $letter_status $was_guessed");
-			$output .= "<a href='single.php?letter=$letter'><span class='".$classes."'>$letter</span></a>";
+            $status = trim("letter_list $letter_status $was_guessed");
 		}
-        $output .= '</span>';
-		return $output;
+		return $alphabet;
     }
     
 	

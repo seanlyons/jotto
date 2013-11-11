@@ -1,8 +1,10 @@
 <?PHP
-            include_once "business_logic.php";
-            
-            $request = sanitizeRequest($_REQUEST);
-            session_start();
+	include_once "business_logic.php";
+	
+	$request = sanitizeRequest($_REQUEST);
+	session_start();
+	$g = new Game();
+	$p = $g->getPlayer( $request );
 ?>
 
 <head>
@@ -37,10 +39,18 @@
             </form>
         </div>
     </div>
-    <div id="spacer"></div>
     <div id="phps">
+		<span id="alphabet">
+			<?PHP
+				$alphabet = $g->displayAlphabet($p);
+				foreach ($alphabet as $letter => $status) {
+			?>
+					<a href='single.php?letter=<?PHP echo $letter; ?>'><span class='<?PHP echo $status; ?>'><?PHP echo $letter; ?></span></a>
+			<?PHP
+				}
+			?>
+		</span>
         <?PHP
-            $g = new Game();
             print_r($g->wrapper($request));
         ?>
     </div>
